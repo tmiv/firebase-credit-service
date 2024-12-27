@@ -10,7 +10,7 @@ import (
 
 type ChargeData struct {
 	Path string `json:"path"`
-	Cost int    `json:"cost"`
+	Cost int    `json:"cost,omitempty"`
 }
 
 type Service struct {
@@ -38,6 +38,35 @@ func (s *Service) createDBClient(ctx context.Context) (*db.Client, error) {
 		return nil, fmt.Errorf("new firebase database failed %v", err)
 	}
 	return fdb, nil
+}
+
+func (s *Service) AddCredits(ctx context.Context, user string, grant int) (int, error) {
+	fdb, err := s.createDBClient(ctx)
+	if err != nil {
+		return -1, err
+	}
+
+	var totalValue int = 0
+	pathRef := fdb.NewRef(s.chargeData.Path)
+	accountRef := pathRef.Child(user)
+	err = accountRef.Transaction(ctx, func(tn db.TransactionNode) (interface{}, error) {
+		var acc int = 0
+		if err := tn.Unmarshal(&acc); err != nil {
+			return nil, err
+		}
+
+		acc += grant
+
+		totalValue = acc
+
+		// Return the new value which will be written back to the database.
+		return acc, nil
+	})
+	if err != nil {
+		return -1, err
+	}
+
+	return totalValue, nil
 }
 
 func (s *Service) SubtractCredits(ctx context.Context, user string) (bool, int, error) {

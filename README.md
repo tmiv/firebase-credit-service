@@ -1,1 +1,1 @@
-# firebase-credit-system
+# firebase-credit-service

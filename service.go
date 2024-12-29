@@ -57,6 +57,10 @@ func (s *Service) AccountExists(ctx context.Context, user string) (bool, error) 
 		return false, fmt.Errorf("failed to get user data: %v", err)
 	}
 
+	if value == nil {
+        	return false, nil
+    	}
+
 	return true, nil
 }
 

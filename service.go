@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	fb "firebase.google.com/go"
-	"firebase.google.com/go/db"
+	fb "firebase.google.com/go/v4"
+	"firebase.google.com/go/v4/db"
+	"firebase.google.com/go/v4/errorutils"
 )
 
 type ChargeData struct {
@@ -38,6 +39,25 @@ func (s *Service) createDBClient(ctx context.Context) (*db.Client, error) {
 		return nil, fmt.Errorf("new firebase database failed %v", err)
 	}
 	return fdb, nil
+}
+
+func (s *Service) AccountExists(ctx context.Context, user string) (bool, error) {
+	fdb, err := s.createDBClient(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	pathRef := fdb.NewRef(s.chargeData.Path)
+	childRef := pathRef.Child(user)
+	var value interface{}
+	if err := childRef.Get(ctx, &value); err != nil {
+		if errorutils.IsNotFound(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to get user data: %v", err)
+	}
+
+	return true, nil
 }
 
 func (s *Service) AddCredits(ctx context.Context, user string, grant int) (int, error) {
